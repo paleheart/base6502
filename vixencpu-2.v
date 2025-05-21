@@ -151,6 +151,10 @@ end
     parameter opcode_BVC = 8'h50;
     parameter opcode_BMI = 8'h30;
     parameter opcode_BPL = 8'h10;
+    parameter opcode_ADC_ZER = 8'h65;
+    parameter opcode_SBC_ZER = 8'hE5;
+    parameter opcode_CMP_ZER = 8'hC5;
+    
 
     //Memory definitions
     parameter reset_vector = 16'h0000;
@@ -676,6 +680,87 @@ end
                                         zero_flag <= 1;
                                     else
                                         zero_flag <= 0;
+                                    negative_flag <= result[7];
+                                    decode_phase <= decode_phase1;
+                                    fetch_decode <= fetch_wait;
+                                end
+                            endcase
+                        end
+                        opcode_ADC_ZER: begin
+                            case(decode_phase)
+                                decode_phase1: begin
+                                    return <= pc;
+                                    pc <= {8'h00, data_in};
+                                    decode_phase <= decode_phase2;
+                                    fetch_decode <= decode_wait;
+                                end 
+                                decode_phase2: begin
+                                    temp_math <= data_in;
+                                    decode_phase <= decode_phase3;
+                                    fetch_decode <= decode_wait;
+                                end
+                                decode_phase3: begin
+                                    {carry_flag, a} <= a + temp_math + carry_flag;
+                                    overflow_flag <= (~(a ^ temp_math) & (a ^ (a + temp_math + carry_flag)))[7];
+                                    if ((a + temp_math + carry_flag) == 8'h00)
+                                        zero_flag <= 1;
+                                    else
+                                        zero_flag <= 0;
+                                    negative_flag <= (a + (temp_math) + carry_flag)[7];
+                                    pc <= return;
+                                    decode_phase <= decode_phase1;
+                                    fetch_decode <= fetch_wait;
+                                end
+                            endcase
+                        end
+                        opcode_SBC_ZER: begin
+                            case(decode_phase)
+                                decode_phase1: begin
+                                    return <= pc;
+                                    pc <= {8'h00, data_in};
+                                    decode_phase <= decode_phase2;
+                                    fetch_decode <= decode_wait;
+                                end 
+                                decode_phase2: begin
+                                    temp_math <= data_in;
+                                    decode_phase <= decode_phase3;
+                                    fetch_decode <= decode_wait;
+                                end
+                                decode_phase3: begin
+                                    {carry_flag, a} <= a + (~temp_math) + carry_flag;
+                                    overflow_flag <= ((a ^ temp_math) & (a ^ (a + (~temp_math) + carry_flag)))[7];
+                                    if ((a + (~temp_math) + carry_flag) == 8'h00)
+                                        zero_flag <= 1;
+                                    else
+                                        zero_flag <= 0;
+                                    negative_flag <= (a + (~temp_math) + carry_flag)[7];
+                                    pc <= return;
+                                    decode_phase <= decode_phase1;
+                                    fetch_decode <= fetch_wait;
+                                end
+                            endcase
+                        end
+                        opcode_CMP_ZER: begin
+                            case(decode_phase)
+                                decode_phase1: begin
+                                    return <= pc;
+                                    pc <= {8'h00, data_in};
+                                    decode_phase <= decode_phase2;
+                                    fetch_decode <= decode_wait;
+                                end 
+                                decode_phase2: begin
+                                    temp_math <= data_in;
+                                    decode_phase <= decode_phase3;
+                                    fetch_decode <= decode_wait;
+                                end
+                                decode_phase3: begin
+                                    carry_flag <= (a >= temp_math);
+                                    if ((a + (~temp_math) + 1) == 8'h00)
+                                        zero_flag <= 1;
+                                    else
+                                        zero_flag <= 0;
+                                    negative_flag <= (a + (~temp_math) + 1)[7];
+                                    pc <= return;
                                     decode_phase <= decode_phase1;
                                     fetch_decode <= fetch_wait;
                                 end
